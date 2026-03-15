@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}{{ event.title }} — CampusPulse{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="mb-4">
+    <a href="/" class="btn-outline"><i class="bi bi-arrow-left"></i> Back to Events</a>
+  </div>
+
+  <!-- Event Header -->
+  <div class="detail-header">
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      {% if event.status == 'live' %}
+        <span class="status-badge status-live">Live</span>
+      {% elif event.status == 'upcoming' %}
+        <span class="status-badge status-upcoming">Upcoming</span>
+      {% else %}
+        <span class="status-badge status-completed">Completed</span>
+      {% endif %}
+      <span class="committee-tag">{{ event.committee }}</span>
+    </div>
+
+    <h1 class="detail-title">{{ event.title }}</h1>
+
+    {% if event.description %}
+    <p style="color:var(--muted); font-size:1rem; line-height:1.7; max-width:700px;">{{ event.description }}</p>
+    {% endif %}
+
+    <div class="info-grid">
+      <div class="info-box">
+        <div class="info-box-label"><i class="bi bi-geo-alt-fill" style="color:var(--accent)"></i> Venue</div>
+        <div class="info-box-value">{{ event.venue or '—' }}</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label"><i class="bi bi-calendar-fill" style="color:var(--accent)"></i> Date</div>
+        <div class="info-box-value">{{ event.date or '—' }}</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label"><i class="bi bi-clock-fill" style="color:var(--accent)"></i> Time</div>
+        <div class="info-box-value">{{ event.time or '—' }}</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label"><i class="bi bi-people-fill" style="color:var(--accent)"></i> Committee</div>
+        <div class="info-box-value">{{ event.committee }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Updates -->
+  {% if event.status == 'live' %}
+  <div class="live-banner mb-3">
+    <div class="live-dot"></div>
+    <div class="flex-fill">
+      <strong style="color:var(--live)">This event is LIVE</strong>
+      <span style="color:var(--muted); font-size:0.88rem; margin-left:10px;">Updates are refreshing automatically</span>
+    </div>
+    <div class="polling-indicator">
+      <div class="pulse-dot"></div>
+      <span>Auto-updating</span>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="updates-feed">
+    <div class="updates-header">
+      <span class="updates-title"><i class="bi bi-broadcast me-2" style="color:var(--accent)"></i>Live Updates</span>
+      {% if event.status == 'live' %}
+      <span class="polling-indicator" id="poll-status">
+        <div class="pulse-dot"></div> Checking for updates…
+      </span>
+      {% endif %}
+    </div>
+
+    <div id="updates-list">
+      {% if updates %}
+        {% for u in updates %}
+        <div class="update-item">
+          <span class="update-time">{{ u.timestamp }}</span>
+          <span class="update-msg">{{ u.message }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty-state" id="no-updates-msg">
+        <i class="bi bi-clock-history"></i>
+        <p>No updates posted yet. Check back soon.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if event.status == 'live' %}
+<script>
+  const EVENT_ID = {{ event.id }};
+  let lastId = {{ updates[-1].id if updates else 0 }};
+
+  function fetchUpdates() {
+    fetch(`/api/updates/${EVENT_ID}?after=${lastId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.updates && data.updates.length > 0) {
+          const list = document.getElementById('updates-list');
+          const noMsg = document.getElementById('no-updates-msg');
+          if (noMsg) noMsg.remove();
+
+          data.updates.forEach(u => {
+            const div = document.createElement('div');
+            div.className = 'update-item';
+            div.innerHTML = `<span class="update-time">${u.timestamp}</span><span class="update-msg">${u.message}</span>`;
+            list.appendChild(div);
+            lastId = u.id;
+          });
+          list.scrollTop = list.scrollHeight;
+        }
+
+        if (data.status !== 'live') {
+          document.getElementById('poll-status').innerHTML = '<span style="color:var(--completed)"><i class="bi bi-check-circle"></i> Event ended</span>';
+          clearInterval(pollInterval);
+        }
+      })
+      .catch(() => {});
+  }
+
+  const pollInterval = setInterval(fetchUpdates, 5000);
+</script>
+{% endif %}
+{% endblock %}
