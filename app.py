@@ -50,12 +50,12 @@ def init_db():
     # Seed admin
     admin_pw = hashlib.sha256('admin123'.encode()).hexdigest()
     c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?,?,?,?)",
-              ('Admin', 'admin@college.edu', admin_pw, 'admin'))
+              ('Admin', 'yashbarhate06@gmail.com', admin_pw, 'admin'))
 
     # Seed committee member
     comm_pw = hashlib.sha256('comm123'.encode()).hexdigest()
     c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?,?,?,?)",
-              ('Tech Committee', 'tech@college.edu', comm_pw, 'committee'))
+              ('Tech Committee', 'yashbarhate06@gmail.com', comm_pw, 'committee'))
 
     # Seed sample events
     c.execute("SELECT COUNT(*) FROM events")
